@@ -264,6 +264,7 @@ class GraphEngine:
 
             previous_node_id = previous_route_node_state.node_id if previous_route_node_state else None
 
+            # @ws 初始化node，运行时
             # init workflow run state
             node_instance = node_cls(  # type: ignore
                 id=route_node_state.id,

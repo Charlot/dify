@@ -14,6 +14,7 @@ class StartNode(BaseNode[StartNodeData]):
     def version(cls) -> str:
         return "1"
 
+    # @ws start node
     def _run(self) -> NodeRunResult:
         node_inputs = dict(self.graph_runtime_state.variable_pool.user_inputs)
         system_inputs = self.graph_runtime_state.variable_pool.system_variables
