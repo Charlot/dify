@@ -77,7 +77,7 @@ class BaseNode(Generic[GenericNodeData]):
                 error=str(e),
                 error_type="WorkflowNodeError",
             )
-
+        # @ws node:节点运行成功事件
         if isinstance(result, NodeRunResult):
             yield RunCompletedEvent(run_result=result)
         else:

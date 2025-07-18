@@ -65,7 +65,7 @@ class HttpRequestNode(BaseNode[HttpRequestNodeData]):
     def version(cls) -> str:
         return "1"
 
-    # @ws http node
+    # @ws node:http node
     def _run(self) -> NodeRunResult:
         process_data = {}
         try:

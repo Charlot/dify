@@ -264,7 +264,7 @@ class GraphEngine:
 
             previous_node_id = previous_route_node_state.node_id if previous_route_node_state else None
 
-            # @ws 初始化node，运行时
+            # @ws engine:初始化node，运行时
             # init workflow run state
             node_instance = node_cls(  # type: ignore
                 id=route_node_state.id,
@@ -654,6 +654,7 @@ class GraphEngine:
                             event.parent_parallel_start_node_id = parent_parallel_start_node_id
                         yield event
                     else:
+                        # @ws engine:节点运行成功事件-处理
                         if isinstance(event, RunCompletedEvent):
                             run_result = event.run_result
                             if run_result.status == WorkflowNodeExecutionStatus.FAILED:
