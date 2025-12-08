@@ -1,30 +1,28 @@
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from core.variables import SegmentType, Variable
 from core.workflow.constants import CONVERSATION_VARIABLE_NODE_ID
 from core.workflow.conversation_variable_updater import ConversationVariableUpdater
-from core.workflow.entities.node_entities import NodeRunResult
-from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
-from core.workflow.nodes.base import BaseNode
-from core.workflow.nodes.enums import NodeType
+from core.workflow.entities import GraphInitParams
+from core.workflow.enums import NodeType, WorkflowNodeExecutionStatus
+from core.workflow.node_events import NodeRunResult
+from core.workflow.nodes.base.node import Node
 from core.workflow.nodes.variable_assigner.common import helpers as common_helpers
 from core.workflow.nodes.variable_assigner.common.exc import VariableOperatorNodeError
-from factories import variable_factory
 
 from ..common.impl import conversation_variable_updater_factory
 from .node_data import VariableAssignerData, WriteMode
 
 if TYPE_CHECKING:
-    from core.workflow.graph_engine import Graph, GraphInitParams, GraphRuntimeState
+    from core.workflow.runtime import GraphRuntimeState
 
 
 _CONV_VAR_UPDATER_FACTORY: TypeAlias = Callable[[], ConversationVariableUpdater]
 
 
-class VariableAssignerNode(BaseNode[VariableAssignerData]):
-    _node_data_cls = VariableAssignerData
-    _node_type = NodeType.VARIABLE_ASSIGNER
+class VariableAssignerNode(Node[VariableAssignerData]):
+    node_type = NodeType.VARIABLE_ASSIGNER
     _conv_var_updater_factory: _CONV_VAR_UPDATER_FACTORY
 
     def __init__(
@@ -32,20 +30,14 @@ class VariableAssignerNode(BaseNode[VariableAssignerData]):
         id: str,
         config: Mapping[str, Any],
         graph_init_params: "GraphInitParams",
-        graph: "Graph",
         graph_runtime_state: "GraphRuntimeState",
-        previous_node_id: Optional[str] = None,
-        thread_pool_id: Optional[str] = None,
         conv_var_updater_factory: _CONV_VAR_UPDATER_FACTORY = conversation_variable_updater_factory,
-    ) -> None:
+    ):
         super().__init__(
             id=id,
             config=config,
             graph_init_params=graph_init_params,
-            graph=graph,
             graph_runtime_state=graph_runtime_state,
-            previous_node_id=previous_node_id,
-            thread_pool_id=thread_pool_id,
         )
         self._conv_var_updater_factory = conv_var_updater_factory
 
@@ -59,18 +51,21 @@ class VariableAssignerNode(BaseNode[VariableAssignerData]):
         *,
         graph_config: Mapping[str, Any],
         node_id: str,
-        node_data: VariableAssignerData,
+        node_data: Mapping[str, Any],
     ) -> Mapping[str, Sequence[str]]:
-        mapping = {}
-        assigned_variable_node_id = node_data.assigned_variable_selector[0]
-        if assigned_variable_node_id == CONVERSATION_VARIABLE_NODE_ID:
-            selector_key = ".".join(node_data.assigned_variable_selector)
-            key = f"{node_id}.#{selector_key}#"
-            mapping[key] = node_data.assigned_variable_selector
+        # Create typed NodeData from dict
+        typed_node_data = VariableAssignerData.model_validate(node_data)
 
-        selector_key = ".".join(node_data.input_variable_selector)
+        mapping = {}
+        assigned_variable_node_id = typed_node_data.assigned_variable_selector[0]
+        if assigned_variable_node_id == CONVERSATION_VARIABLE_NODE_ID:
+            selector_key = ".".join(typed_node_data.assigned_variable_selector)
+            key = f"{node_id}.#{selector_key}#"
+            mapping[key] = typed_node_data.assigned_variable_selector
+
+        selector_key = ".".join(typed_node_data.input_variable_selector)
         key = f"{node_id}.#{selector_key}#"
-        mapping[key] = node_data.input_variable_selector
+        mapping[key] = typed_node_data.input_variable_selector
         return mapping
 
     def _run(self) -> NodeRunResult:
@@ -95,13 +90,8 @@ class VariableAssignerNode(BaseNode[VariableAssignerData]):
                 updated_variable = original_variable.model_copy(update={"value": updated_value})
 
             case WriteMode.CLEAR:
-                income_value = get_zero_value(original_variable.value_type)
-                if income_value is None:
-                    raise VariableOperatorNodeError("income value not found")
+                income_value = SegmentType.get_zero_value(original_variable.value_type)
                 updated_variable = original_variable.model_copy(update={"value": income_value.to_object()})
-
-            case _:
-                raise VariableOperatorNodeError(f"unsupported write mode: {self.node_data.write_mode}")
 
         # Over write the variable.
         self.graph_runtime_state.variable_pool.add(assigned_variable_selector, updated_variable)
@@ -127,22 +117,3 @@ class VariableAssignerNode(BaseNode[VariableAssignerData]):
             process_data=common_helpers.set_updated_variables({}, updated_variables),
             outputs={},
         )
-
-
-def get_zero_value(t: SegmentType):
-    # TODO(QuantumGhost): this should be a method of `SegmentType`.
-    match t:
-        case SegmentType.ARRAY_OBJECT | SegmentType.ARRAY_STRING | SegmentType.ARRAY_NUMBER:
-            return variable_factory.build_segment([])
-        case SegmentType.OBJECT:
-            return variable_factory.build_segment({})
-        case SegmentType.STRING:
-            return variable_factory.build_segment("")
-        case SegmentType.INTEGER:
-            return variable_factory.build_segment(0)
-        case SegmentType.FLOAT:
-            return variable_factory.build_segment(0.0)
-        case SegmentType.NUMBER:
-            return variable_factory.build_segment(0)
-        case _:
-            raise VariableOperatorNodeError(f"unsupported variable type: {t}")

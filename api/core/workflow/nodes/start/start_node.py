@@ -1,14 +1,18 @@
+from typing import Any
+
+from jsonschema import Draft7Validator, ValidationError
+
+from core.app.app_config.entities import VariableEntityType
 from core.workflow.constants import SYSTEM_VARIABLE_NODE_ID
-from core.workflow.entities.node_entities import NodeRunResult
-from core.workflow.entities.workflow_node_execution import WorkflowNodeExecutionStatus
-from core.workflow.nodes.base import BaseNode
-from core.workflow.nodes.enums import NodeType
+from core.workflow.enums import NodeExecutionType, NodeType, WorkflowNodeExecutionStatus
+from core.workflow.node_events import NodeRunResult
+from core.workflow.nodes.base.node import Node
 from core.workflow.nodes.start.entities import StartNodeData
 
 
-class StartNode(BaseNode[StartNodeData]):
-    _node_data_cls = StartNodeData
-    _node_type = NodeType.START
+class StartNode(Node[StartNodeData]):
+    node_type = NodeType.START
+    execution_type = NodeExecutionType.ROOT
 
     @classmethod
     def version(cls) -> str:
@@ -17,6 +21,7 @@ class StartNode(BaseNode[StartNodeData]):
     # @ws node:start node
     def _run(self) -> NodeRunResult:
         node_inputs = dict(self.graph_runtime_state.variable_pool.user_inputs)
+        self._validate_and_normalize_json_object_inputs(node_inputs)
         system_inputs = self.graph_runtime_state.variable_pool.system_variables.to_dict()
 
         # TODO: System variables should be directly accessible, no need for special handling
@@ -26,3 +31,27 @@ class StartNode(BaseNode[StartNodeData]):
         outputs = dict(node_inputs)
 
         return NodeRunResult(status=WorkflowNodeExecutionStatus.SUCCEEDED, inputs=node_inputs, outputs=outputs)
+
+    def _validate_and_normalize_json_object_inputs(self, node_inputs: dict[str, Any]) -> None:
+        for variable in self.node_data.variables:
+            if variable.type != VariableEntityType.JSON_OBJECT:
+                continue
+
+            key = variable.variable
+            value = node_inputs.get(key)
+
+            if value is None and variable.required:
+                raise ValueError(f"{key} is required in input form")
+
+            if not isinstance(value, dict):
+                raise ValueError(f"{key} must be a JSON object")
+
+            schema = variable.json_schema
+            if not schema:
+                continue
+
+            try:
+                Draft7Validator(schema).validate(value)
+            except ValidationError as e:
+                raise ValueError(f"JSON object for '{key}' does not match schema: {e.message}")
+            node_inputs[key] = value

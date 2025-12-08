@@ -242,6 +242,11 @@ export const initialNodes = (originNodes: Node[], originEdges: Edge[]) => {
         ...(node.data as IfElseNodeType).cases.map(item => ({ id: item.case_id, name: '' })),
         { id: 'false', name: '' },
       ])
+      // delete conditions and logical_operator if cases is not empty
+      if (nodeData.cases.length > 0 && nodeData.conditions && nodeData.logical_operator) {
+        delete nodeData.conditions
+        delete nodeData.logical_operator
+      }
     }
 
     if (node.data.type === BlockEnum.QuestionClassifier) {
@@ -286,8 +291,8 @@ export const initialNodes = (originNodes: Node[], originEdges: Edge[]) => {
       }
     }
 
-    if (node.data.type === BlockEnum.Tool && !(node as Node<ToolNodeType>).data.version) {
-      (node as Node<ToolNodeType>).data.version = '2'
+    if (node.data.type === BlockEnum.Tool && !(node as Node<ToolNodeType>).data.version && !(node as Node<ToolNodeType>).data.tool_node_version) {
+      (node as Node<ToolNodeType>).data.tool_node_version = '2'
 
       const toolConfigurations = (node as Node<ToolNodeType>).data.tool_configurations
       if (toolConfigurations && Object.keys(toolConfigurations).length > 0) {
