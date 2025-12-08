@@ -179,6 +179,10 @@ const translation = {
       title: 'Tkaj',
       description: 'Weave to platforma open-source do oceny, testowania i monitorowania aplikacji LLM.',
     },
+    aliyun: {
+      title: 'Monitor Chmury',
+      description: 'W pełni zarządzana i wolna od konserwacji platforma obserwowalności oferowana przez Alibaba Cloud umożliwia gotowe monitorowanie, śledzenie i oceny aplikacji Dify.',
+    },
   },
   answerIcon: {
     description: 'Czy w aplikacji udostępnionej ma być używana ikona aplikacji internetowej do zamiany 🤖.',
@@ -262,6 +266,8 @@ const translation = {
   },
   accessControl: 'Kontrola dostępu do aplikacji internetowej',
   noAccessPermission: 'Brak uprawnień do dostępu do aplikacji internetowej',
+  maxActiveRequests: 'Maksymalne równoczesne żądania',
+  maxActiveRequestsPlaceholder: 'Wprowadź 0, aby uzyskać nielimitowane',
 }
 
 export default translation

@@ -172,6 +172,10 @@ const translation = {
       title: 'Împletește',
       description: 'Weave este o platformă open-source pentru evaluarea, testarea și monitorizarea aplicațiilor LLM.',
     },
+    aliyun: {
+      description: 'Platforma de observabilitate SaaS oferită de Alibaba Cloud permite monitorizarea, urmărirea și evaluarea aplicațiilor Dify din cutie.',
+      title: 'Monitorizarea Cloud',
+    },
   },
   answerIcon: {
     descriptionInExplore: 'Dacă să utilizați pictograma web app pentru a înlocui 🤖 în Explore',
@@ -255,6 +259,8 @@ const translation = {
   },
   accessControl: 'Controlul Accesului la Aplicația Web',
   noAccessPermission: 'Nici o permisiune pentru a accesa aplicația web',
+  maxActiveRequestsPlaceholder: 'Introduceți 0 pentru nelimitat',
+  maxActiveRequests: 'Maxime cereri simultane',
 }
 
 export default translation

@@ -28,7 +28,7 @@ from core.ops.langfuse_trace.entities.langfuse_trace_entity import (
     UnitEnum,
 )
 from core.ops.utils import filter_none_values
-from core.repositories import SQLAlchemyWorkflowNodeExecutionRepository
+from core.repositories import DifyCoreRepositoryFactory
 from core.workflow.nodes.enums import NodeType
 from extensions.ext_database import db
 from models import EndUser, WorkflowNodeExecutionTriggeredFrom
@@ -123,10 +123,10 @@ class LangFuseDataTrace(BaseTraceInstance):
 
         service_account = self.get_service_account_with_tenant(app_id)
 
-        workflow_node_execution_repository = SQLAlchemyWorkflowNodeExecutionRepository(
+        workflow_node_execution_repository = DifyCoreRepositoryFactory.create_workflow_node_execution_repository(
             session_factory=session_factory,
             user=service_account,
-            app_id=trace_info.metadata.get("app_id"),
+            app_id=app_id,
             triggered_from=WorkflowNodeExecutionTriggeredFrom.WORKFLOW_RUN,
         )
 
@@ -181,12 +181,9 @@ class LangFuseDataTrace(BaseTraceInstance):
                 prompt_tokens = 0
                 completion_tokens = 0
                 try:
-                    if outputs.get("usage"):
-                        prompt_tokens = outputs.get("usage", {}).get("prompt_tokens", 0)
-                        completion_tokens = outputs.get("usage", {}).get("completion_tokens", 0)
-                    else:
-                        prompt_tokens = process_data.get("usage", {}).get("prompt_tokens", 0)
-                        completion_tokens = process_data.get("usage", {}).get("completion_tokens", 0)
+                    usage_data = process_data.get("usage", {}) if "usage" in process_data else outputs.get("usage", {})
+                    prompt_tokens = usage_data.get("prompt_tokens", 0)
+                    completion_tokens = usage_data.get("completion_tokens", 0)
                 except Exception:
                     logger.error("Failed to extract usage", exc_info=True)
 

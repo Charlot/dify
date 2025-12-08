@@ -176,6 +176,10 @@ const translation = {
       title: 'بافندگی',
       description: 'ویو یک پلتفرم متن باز برای ارزیابی، آزمایش و نظارت بر برنامه‌های LLM است.',
     },
+    aliyun: {
+      title: 'نظارت بر ابر',
+      description: 'پلتفرم مشاهده‌پذیری کاملاً مدیریت‌شده و بدون نیاز به نگهداری که توسط Alibaba Cloud ارائه شده، امکان نظارت، ردیابی و ارزیابی برنامه‌های Dify را به‌صورت آماده و با تنظیمات اولیه فراهم می‌کند.',
+    },
   },
   answerIcon: {
     descriptionInExplore: 'آیا از نماد web app برای جایگزینی 🤖 در Explore استفاده کنیم یا خیر',
@@ -255,6 +259,8 @@ const translation = {
   },
   accessControl: 'کنترل دسترسی به وب اپلیکیشن',
   noAccessPermission: 'دسترسی به برنامه وب مجاز نیست',
+  maxActiveRequests: 'بیشترین درخواست‌های همزمان',
+  maxActiveRequestsPlaceholder: 'برای نامحدود، 0 را وارد کنید',
 }
 
 export default translation

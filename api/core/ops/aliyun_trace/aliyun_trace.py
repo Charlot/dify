@@ -284,7 +284,8 @@ class AliyunDataTrace(BaseTraceInstance):
             else:
                 node_span = self.build_workflow_task_span(trace_id, workflow_span_id, trace_info, node_execution)
             return node_span
-        except Exception:
+        except Exception as e:
+            logging.debug(f"Error occurred in build_workflow_node_span: {e}", exc_info=True)
             return None
 
     def get_workflow_node_status(self, node_execution: WorkflowNodeExecution) -> Status:
@@ -306,7 +307,7 @@ class AliyunDataTrace(BaseTraceInstance):
             start_time=convert_datetime_to_nanoseconds(node_execution.created_at),
             end_time=convert_datetime_to_nanoseconds(node_execution.finished_at),
             attributes={
-                GEN_AI_SESSION_ID: trace_info.metadata.get("conversation_id", ""),
+                GEN_AI_SESSION_ID: trace_info.metadata.get("conversation_id") or "",
                 GEN_AI_SPAN_KIND: GenAISpanKind.TASK.value,
                 GEN_AI_FRAMEWORK: "dify",
                 INPUT_VALUE: json.dumps(node_execution.inputs, ensure_ascii=False),
@@ -372,6 +373,7 @@ class AliyunDataTrace(BaseTraceInstance):
     ) -> SpanData:
         process_data = node_execution.process_data or {}
         outputs = node_execution.outputs or {}
+        usage_data = process_data.get("usage", {}) if "usage" in process_data else outputs.get("usage", {})
         return SpanData(
             trace_id=trace_id,
             parent_span_id=workflow_span_id,
@@ -380,14 +382,14 @@ class AliyunDataTrace(BaseTraceInstance):
             start_time=convert_datetime_to_nanoseconds(node_execution.created_at),
             end_time=convert_datetime_to_nanoseconds(node_execution.finished_at),
             attributes={
-                GEN_AI_SESSION_ID: trace_info.metadata.get("conversation_id", ""),
+                GEN_AI_SESSION_ID: trace_info.metadata.get("conversation_id") or "",
                 GEN_AI_SPAN_KIND: GenAISpanKind.LLM.value,
                 GEN_AI_FRAMEWORK: "dify",
                 GEN_AI_MODEL_NAME: process_data.get("model_name", ""),
                 GEN_AI_SYSTEM: process_data.get("model_provider", ""),
-                GEN_AI_USAGE_INPUT_TOKENS: str(outputs.get("usage", {}).get("prompt_tokens", 0)),
-                GEN_AI_USAGE_OUTPUT_TOKENS: str(outputs.get("usage", {}).get("completion_tokens", 0)),
-                GEN_AI_USAGE_TOTAL_TOKENS: str(outputs.get("usage", {}).get("total_tokens", 0)),
+                GEN_AI_USAGE_INPUT_TOKENS: str(usage_data.get("prompt_tokens", 0)),
+                GEN_AI_USAGE_OUTPUT_TOKENS: str(usage_data.get("completion_tokens", 0)),
+                GEN_AI_USAGE_TOTAL_TOKENS: str(usage_data.get("total_tokens", 0)),
                 GEN_AI_PROMPT: json.dumps(process_data.get("prompts", []), ensure_ascii=False),
                 GEN_AI_COMPLETION: str(outputs.get("text", "")),
                 GEN_AI_RESPONSE_FINISH_REASON: outputs.get("finish_reason", ""),
@@ -414,7 +416,7 @@ class AliyunDataTrace(BaseTraceInstance):
                 start_time=convert_datetime_to_nanoseconds(trace_info.start_time),
                 end_time=convert_datetime_to_nanoseconds(trace_info.end_time),
                 attributes={
-                    GEN_AI_SESSION_ID: trace_info.metadata.get("conversation_id", ""),
+                    GEN_AI_SESSION_ID: trace_info.metadata.get("conversation_id") or "",
                     GEN_AI_USER_ID: str(user_id),
                     GEN_AI_SPAN_KIND: GenAISpanKind.CHAIN.value,
                     GEN_AI_FRAMEWORK: "dify",

@@ -176,6 +176,10 @@ const translation = {
       description: 'Weave — это открытая платформа для оценки, тестирования и мониторинга приложений LLM.',
       title: 'Ткать',
     },
+    aliyun: {
+      title: 'Облачный монитор',
+      description: 'Полностью управляемая и не требующая обслуживания платформа наблюдения, предоставляемая Alibaba Cloud, обеспечивает мониторинг, трассировку и оценку приложений Dify из коробки.',
+    },
   },
   answerIcon: {
     title: 'Использование значка web app для замены 🤖',
@@ -255,6 +259,8 @@ const translation = {
   },
   accessControl: 'Управление доступом к веб-приложению',
   noAccessPermission: 'Нет разрешения на доступ к веб-приложению',
+  maxActiveRequests: 'Максимальное количество параллельных запросов',
+  maxActiveRequestsPlaceholder: 'Введите 0 для неограниченного количества',
 }
 
 export default translation

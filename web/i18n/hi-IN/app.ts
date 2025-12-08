@@ -172,6 +172,10 @@ const translation = {
       title: 'बुनना',
       description: 'वीव एक ओपन-सोर्स प्लेटफ़ॉर्म है जो LLM अनुप्रयोगों का मूल्यांकन, परीक्षण और निगरानी करने के लिए है।',
     },
+    aliyun: {
+      title: 'क्लाउड मॉनिटर',
+      description: 'अलीबाबा क्लाउड द्वारा प्रदान की गई पूरी तरह से प्रबंधित और रखरखाव-मुक्त अवलोकन प्लेटफ़ॉर्म, Dify अनुप्रयोगों की स्वचालित निगरानी, ट्रेसिंग और मूल्यांकन का सक्षम बनाता है।',
+    },
   },
   answerIcon: {
     title: 'बदलने 🤖 के लिए web app चिह्न का उपयोग करें',
@@ -255,6 +259,8 @@ const translation = {
   },
   accessControl: 'वेब एप्लिकेशन पहुँच नियंत्रण',
   noAccessPermission: 'वेब एप्लिकेशन तक पहुँचने की अनुमति नहीं है',
+  maxActiveRequests: 'अधिकतम समवर्ती अनुरोध',
+  maxActiveRequestsPlaceholder: 'असीमित के लिए 0 दर्ज करें',
 }
 
 export default translation

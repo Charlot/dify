@@ -1,5 +1,5 @@
 from collections.abc import Generator, Mapping, Sequence
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,7 +22,7 @@ from core.workflow.enums import SystemVariableKey
 from core.workflow.graph_engine.entities.event import AgentLogEvent
 from core.workflow.nodes.base import BaseNode
 from core.workflow.nodes.enums import NodeType
-from core.workflow.nodes.event import RunCompletedEvent, RunStreamChunkEvent
+from core.workflow.nodes.event import RunCompletedEvent, RunRetrieverResourceEvent, RunStreamChunkEvent
 from core.workflow.utils.variable_template_parser import VariableTemplateParser
 from extensions.ext_database import db
 from factories import file_factory
@@ -67,8 +67,9 @@ class ToolNode(BaseNode[ToolNodeData]):
         try:
             from core.tools.tool_manager import ToolManager
 
+            variable_pool = self.graph_runtime_state.variable_pool if self.node_data.version != "1" else None
             tool_runtime = ToolManager.get_workflow_tool_runtime(
-                self.tenant_id, self.app_id, self.node_id, self.node_data, self.invoke_from
+                self.tenant_id, self.app_id, self.node_id, self.node_data, self.invoke_from, variable_pool
             )
         except ToolNodeError as e:
             yield RunCompletedEvent(
@@ -95,7 +96,6 @@ class ToolNode(BaseNode[ToolNodeData]):
             node_data=self.node_data,
             for_log=True,
         )
-
         # get conversation id
         conversation_id = self.graph_runtime_state.variable_pool.get(["sys", SystemVariableKey.CONVERSATION_ID])
 
@@ -191,6 +191,7 @@ class ToolNode(BaseNode[ToolNodeData]):
         messages: Generator[ToolInvokeMessage, None, None],
         tool_info: Mapping[str, Any],
         parameters_for_log: dict[str, Any],
+        agent_thoughts: Optional[list] = None,
     ) -> Generator:
         """
         Convert ToolInvokeMessages into tuple[plain_text, files]
@@ -284,7 +285,8 @@ class ToolNode(BaseNode[ToolNodeData]):
                         for key, value in msg_metadata.items()
                         if key in WorkflowNodeExecutionMetadataKey.__members__.values()
                     }
-                json.append(message.message.json_object)
+                if message.message.json_object is not None:
+                    json.append(message.message.json_object)
             elif message.type == ToolInvokeMessage.MessageType.LINK:
                 assert isinstance(message.message, ToolInvokeMessage.TextMessage)
                 stream_text = f"Link: {message.message.text}\n"
@@ -327,6 +329,7 @@ class ToolNode(BaseNode[ToolNodeData]):
                             icon = current_plugin.declaration.icon
                         except StopIteration:
                             pass
+                        icon_dark = None
                         try:
                             builtin_tool = next(
                                 provider
@@ -337,10 +340,12 @@ class ToolNode(BaseNode[ToolNodeData]):
                                 if provider.name == dict_metadata["provider"]
                             )
                             icon = builtin_tool.icon
+                            icon_dark = builtin_tool.icon_dark
                         except StopIteration:
                             pass
 
                         dict_metadata["icon"] = icon
+                        dict_metadata["icon_dark"] = icon_dark
                         message.message.metadata = dict_metadata
                 agent_log = AgentLogEvent(
                     id=message.message.id,
@@ -368,11 +373,41 @@ class ToolNode(BaseNode[ToolNodeData]):
                     agent_logs.append(agent_log)
 
                 yield agent_log
+            elif message.type == ToolInvokeMessage.MessageType.RETRIEVER_RESOURCES:
+                assert isinstance(message.message, ToolInvokeMessage.RetrieverResourceMessage)
+                yield RunRetrieverResourceEvent(
+                    retriever_resources=message.message.retriever_resources,
+                    context=message.message.context,
+                )
+
+        # Add agent_logs to outputs['json'] to ensure frontend can access thinking process
+        json_output: list[dict[str, Any]] = []
+
+        # Step 1: append each agent log as its own dict.
+        if agent_logs:
+            for log in agent_logs:
+                json_output.append(
+                    {
+                        "id": log.id,
+                        "parent_id": log.parent_id,
+                        "error": log.error,
+                        "status": log.status,
+                        "data": log.data,
+                        "label": log.label,
+                        "metadata": log.metadata,
+                        "node_id": log.node_id,
+                    }
+                )
+        # Step 2: normalize JSON into {"data": [...]}.change json to list[dict]
+        if json:
+            json_output.extend(json)
+        else:
+            json_output.append({"data": []})
 
         yield RunCompletedEvent(
             run_result=NodeRunResult(
                 status=WorkflowNodeExecutionStatus.SUCCEEDED,
-                outputs={"text": text, "files": ArrayFileSegment(value=files), "json": json, **variables},
+                outputs={"text": text, "files": ArrayFileSegment(value=files), "json": json_output, **variables},
                 metadata={
                     **agent_execution_metadata,
                     WorkflowNodeExecutionMetadataKey.TOOL_INFO: tool_info,

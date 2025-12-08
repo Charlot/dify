@@ -234,6 +234,7 @@ export const Workflow: FC<WorkflowProps> = memo(({
     handleFetchAllTools('builtin')
     handleFetchAllTools('custom')
     handleFetchAllTools('workflow')
+    handleFetchAllTools('mcp')
   }, [handleFetchAllTools])
 
   const {
@@ -392,8 +393,8 @@ export const WorkflowWithInnerContext = memo(({
   )
 })
 
-type WorkflowWithDefaultContextProps =
-  Pick<WorkflowProps, 'edges' | 'nodes'>
+type WorkflowWithDefaultContextProps
+  = Pick<WorkflowProps, 'edges' | 'nodes'>
   & {
     children: React.ReactNode
   }
