@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from abc import ABC
 from builtins import type as type_
@@ -59,7 +61,7 @@ class OutputVariableEntity(BaseModel):
     """
 
     variable: str
-    value_type: OutputVariableType
+    value_type: OutputVariableType = OutputVariableType.ANY
     value_selector: Sequence[str]
 
     @field_validator("value_type", mode="before")
@@ -111,9 +113,9 @@ class DefaultValue(BaseModel):
             raise DefaultValueTypeError(f"Cannot convert to number: {value}")
 
     @model_validator(mode="after")
-    def validate_value_type(self) -> "DefaultValue":
+    def validate_value_type(self) -> DefaultValue:
         # Type validation configuration
-        type_validators = {
+        type_validators: dict[DefaultValueType, dict[str, Any]] = {
             DefaultValueType.STRING: {
                 "type": str,
                 "converter": lambda x: x,
